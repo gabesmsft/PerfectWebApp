@@ -1,0 +1,155 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "webAppName": {
+      "type": "string",
+      "defaultValue": "[concat('perfectapp-', uniqueString(resourceGroup().id))]",
+      "metadata": {
+        "description": "Name of the Azure Web App."
+      }
+    },
+    "appServicePlanName": {
+      "type": "string",
+      "defaultValue": "[concat(parameters('webAppName'), '-plan')]",
+      "metadata": {
+        "description": "Name of the App Service Plan."
+      }
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]",
+      "metadata": {
+        "description": "Location for all resources."
+      }
+    },
+    "skuName": {
+      "type": "string",
+      "defaultValue": "F1",
+      "allowedValues": [
+        "F1",
+        "B1",
+        "B2",
+        "B3",
+        "S1",
+        "S2",
+        "S3",
+        "P1v3",
+        "P2v3",
+        "P3v3"
+      ],
+      "metadata": {
+        "description": "SKU of the App Service Plan."
+      }
+    },
+    "alertReceiverEmail": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Email address to receive alert notifications. Leave empty to skip action group creation."
+      }
+    }
+  },
+  "variables": {
+    "actionGroupName": "[concat(parameters('webAppName'), '-ag')]",
+    "alertRuleName": "[concat(parameters('webAppName'), '-http5xx-alert')]",
+    "createActionGroup": "[not(empty(parameters('alertReceiverEmail')))]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Web/serverfarms",
+      "apiVersion": "2022-09-01",
+      "name": "[parameters('appServicePlanName')]",
+      "location": "[parameters('location')]",
+      "kind": "app",
+      "sku": {
+        "name": "[parameters('skuName')]"
+      },
+      "properties": {
+        "reserved": false
+      }
+    },
+    {
+      "type": "Microsoft.Web/sites",
+      "apiVersion": "2022-09-01",
+      "name": "[parameters('webAppName')]",
+      "location": "[parameters('location')]",
+      "kind": "app",
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/serverfarms', parameters('appServicePlanName'))]"
+      ],
+      "properties": {
+        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', parameters('appServicePlanName'))]",
+        "httpsOnly": true,
+        "siteConfig": {
+          "netFrameworkVersion": "v10.0",
+          "minTlsVersion": "1.2",
+           "appSettings": [
+             {
+               "name": "foo",
+               "value": "bark"
+             }
+           ]
+        },
+        "clientAffinityEnabled": true,
+        "publicNetworkAccess": "Enabled"
+      }
+    },
+    {
+      "condition": "[variables('createActionGroup')]",
+      "type": "Microsoft.Insights/actionGroups",
+      "apiVersion": "2023-01-01",
+      "name": "[variables('actionGroupName')]",
+      "location": "Global",
+      "properties": {
+        "groupShortName": "Http5xxAG",
+        "enabled": true,
+        "emailReceivers": [
+          {
+            "name": "emailReceiver",
+            "emailAddress": "[if(variables('createActionGroup'), parameters('alertReceiverEmail'), 'placeholder@example.com')]",
+            "useCommonAlertSchema": true
+          }
+        ]
+      }
+    },
+    {
+      "type": "Microsoft.Insights/metricAlerts",
+      "apiVersion": "2018-03-01",
+      "name": "[variables('alertRuleName')]",
+      "location": "Global",
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/sites', parameters('webAppName'))]",
+        "[resourceId('Microsoft.Insights/actionGroups', variables('actionGroupName'))]"
+      ],
+      "properties": {
+        "description": "Alert when 3 or more HTTP 5xx errors occur within a 5-minute window.",
+        "severity": 2,
+        "enabled": true,
+        "scopes": [
+          "[resourceId('Microsoft.Web/sites', parameters('webAppName'))]"
+        ],
+        "evaluationFrequency": "PT1M",
+        "windowSize": "PT5M",
+        "criteria": {
+          "odata.type": "Microsoft.Azure.Monitor.SingleResourceMultipleMetricCriteria",
+          "allOf": [
+            {
+              "name": "Http5xxGreaterThanOrEqual3",
+              "metricName": "Http5xx",
+              "metricNamespace": "Microsoft.Web/sites",
+              "operator": "GreaterThanOrEqual",
+              "threshold": 3,
+              "timeAggregation": "Total",
+              "criterionType": "StaticThresholdCriterion"
+            }
+          ]
+        },
+        "actions": "[if(variables('createActionGroup'), createArray(createObject('actionGroupId', resourceId('Microsoft.Insights/actionGroups', variables('actionGroupName')))), createArray())]",
+        "autoMitigate": true,
+        "targetResourceType": "Microsoft.Web/sites",
+        "targetResourceRegion": "[parameters('location')]"
+      }
+    }
+  ]
+}
