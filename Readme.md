@@ -6,5 +6,5 @@ Also includes an alert that triggers when HTTP 5xx errors occur within 5 minutes
 
 
 
-\[!\[Deploy To Azure](https://raw.githubusercontent.com/Azure/azure-quickstart-templates/master/1-CONTRIBUTION-GUIDE/images/deploytoazure.svg?sanitize=true)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fgabesmsft%2FerfectWebApp%2Fmaster%2Fdeploy%2Fazuredeploy.json)
+\[!\[Deploy To Azure](https://raw.githubusercontent.com/Azure/azure-quickstart-templates/master/1-CONTRIBUTION-GUIDE/images/deploytoazure.svg?sanitize=true)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fgabesmsft%2FPerfectWebApp%2Fmaster%2Fdeploy%2Fazuredeploy.json)
 
