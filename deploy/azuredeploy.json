@@ -88,6 +88,10 @@
              {
                "name": "foo",
                "value": "bark"
+             },
+             {
+               "name": "WEBSITE_RUN_FROM_PACKAGE",
+               "value": "https://raw.githubusercontent.com/gabesmsft/PerfectWebApp/refs/heads/master/zip-package/app.zip"
              }
            ]
         },
