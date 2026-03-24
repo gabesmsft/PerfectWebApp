@@ -1,3 +1,7 @@
+\# Azure Web App - HTTP 5xx and alert rule for basic testing
+
+
+
 Simple example to test returning an HTTP 500 error. If you set an environment variable named **foo** with a value of **bar**, the HomeController Index method returns 1/0 to the view, which throws an exception.
 
 
